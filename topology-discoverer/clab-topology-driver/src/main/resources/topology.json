@@ -1,0 +1,116 @@
+[
+  {
+    "container": "r2",
+    "interfaces": [
+      {
+        "name": "ethernet-1/1",
+        "ip": "10.0.2.1/24",
+        "adjacent-node": "s2",
+        "adjacent-interface": "ethernet-1/1",
+        "termination-point": "s2:ethernet-1/1"
+      },
+      {
+        "name": "ethernet-1/2",
+        "ip": "192.168.254.2/24",
+        "adjacent-node": "r1",
+        "adjacent-interface": "Ethernet1",
+        "termination-point": "r1:Ethernet1"
+      },
+      {
+        "name": "mgmt0",
+        "ip": "172.20.20.6/24"
+      }
+    ],
+    "mgmt_interface": "mgmt0",
+    "vendor": "nokia"
+  },
+  {
+    "container": "s2",
+    "interfaces": [
+      {
+        "name": "ethernet-1/1",
+        "ip": "N/A",
+        "adjacent-node": "r2",
+        "adjacent-interface": "ethernet-1/1",
+        "termination-point": "r2:ethernet-1/1"
+      },
+      {
+        "name": "ethernet-1/2",
+        "ip": "N/A",
+        "adjacent-node": "pc21",
+        "adjacent-interface": "eth1",
+        "termination-point": "pc21:eth1"
+      },
+      {
+        "name": "ethernet-1/3",
+        "ip": "N/A",
+        "adjacent-node": "pc22",
+        "adjacent-interface": "eth1",
+        "termination-point": "pc22:eth1"
+      },
+      {
+        "name": "mgmt0",
+        "ip": "172.20.20.8/24"
+      }
+    ],
+    "mgmt_interface": "mgmt0",
+    "vendor": "nokia"
+  },
+  {
+    "container": "r1",
+    "interfaces": [
+      {
+        "name": "Ethernet1",
+        "ip": "192.168.254.1",
+        "adjacent-node": "r2",
+        "adjacent-interface": "ethernet-1/2",
+        "termination-point": "r2:ethernet-1/2"
+      },
+      {
+        "name": "Ethernet2",
+        "ip": "10.0.1.1",
+        "adjacent-node": "s1",
+        "adjacent-interface": "Ethernet3",
+        "termination-point": "s1:Ethernet3"
+      },
+      {
+        "name": "Management0",
+        "ip": "172.20.20.7"
+      }
+    ],
+    "mgmt_interface": "Management0",
+    "vendor": "arista"
+  },
+  {
+    "container": "s1",
+    "interfaces": [
+      {
+        "name": "Ethernet3",
+        "ip": "N/A",
+        "adjacent-node": "r1",
+        "adjacent-interface": "Ethernet2",
+        "termination-point": "r1:Ethernet2"
+      },
+      {
+        "name": "Ethernet1",
+        "ip": "N/A",
+        "adjacent-node": "pc11",
+        "adjacent-interface": "eth1",
+        "termination-point": "pc11:eth1"
+      },
+      {
+        "name": "Ethernet2",
+        "ip": "N/A",
+        "adjacent-node": "pc12",
+        "adjacent-interface": "eth1",
+        "termination-point": "pc12:eth1"
+      },
+      {
+        "name": "Management0",
+        "ip": "172.20.20.2"
+      }
+    ],
+    "mgmt_interface": "Management0",
+    "vendor": "arista"
+  }
+]
