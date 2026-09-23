@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Topology Viewer</title>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #header {
+      padding: 10px;
+      background: #1f2937;
+      color: white;
+      font-size: 18px;
+    }
+
+    #tabs {
+      display: flex;
+      background: #e5e7eb;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-right: 1px solid #cbd5e1;
+      background: #e5e7eb;
+      font-weight: bold;
+    }
+
+    .tab.active {
+      background: white;
+      color: #7b0054;
+    }
+
+    .cy-container {
+      width: 100vw;
+      height: calc(100vh - 92px);
+      display: none;
+    }
+
+    .cy-container.active {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="header">Topology-Viewer</div>
+
+  <div id="tabs">
+    <div class="tab active" onclick="showTab('input')">StreamNeighbor Topology</div>
+    <div class="tab" onclick="showTab('output')">RFC 8345 Topology</div>
+  </div>
+
+  <div id="cy-input" class="cy-container active"></div>
+  <div id="cy-output" class="cy-container"></div>
+
+  <script>
+    const socket = io();
+
+    function createCy(containerId) {
+      return cytoscape({
+        container: document.getElementById(containerId),
+        elements: [],
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'label': 'data(label)',
+              'text-valign': 'center',
+              'text-halign': 'center',
+              'background-color': '#7b0054',
+              'color': '#fff',
+              'width': 55,
+              'height': 55
+            }
+          },
+          {
+            selector: 'edge',
+            style: {
+              'label': 'data(label)',
+              'curve-style': 'bezier',
+              'target-arrow-shape': 'none',
+              'line-color': '#64748b',
+              'width': 3,
+              'font-size': 10,
+              'text-background-color': '#ffffff',
+              'text-background-opacity': 1
+            }
+          },
+          {
+            selector: 'edge[status = "up"]',
+            style: {
+              'line-color': '#00AA00',
+              'width': 4
+            }
+          },
+          {
+            selector: 'edge[status = "down"]',
+            style: {
+              'line-color': '#FF0000',
+              'width': 4,
+              'line-style': 'dashed'
+            }
+          }
+        ],
+        layout: {
+          name: 'cose'
+        }
+      });
+    }
+
+    const cyInput = createCy('cy-input');
+    const cyOutput = createCy('cy-output');
+
+    function updateGraph(cy, graph) {
+      cy.elements().remove();
+      cy.add(graph.nodes);
+      cy.add(graph.edges);
+      cy.layout({ name: 'cose', animate: true }).run();
+    }
+
+    socket.on('topology_update_input', function(graph) {
+      console.log("Input topology received:", graph);
+      updateGraph(cyInput, graph);
+    });
+
+    socket.on('topology_update_output', function(graph) {
+      console.log("Output topology received:", graph);
+      updateGraph(cyOutput, graph);
+    });
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.cy-container').forEach(c => c.classList.remove('active'));
+
+      if (tabName === 'input') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('cy-input').classList.add('active');
+        cyInput.resize();
+        cyInput.fit();
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('cy-output').classList.add('active');
+        cyOutput.resize();
+        cyOutput.fit();
+      }
+    }
+  </script>
+</body>
+</html>
