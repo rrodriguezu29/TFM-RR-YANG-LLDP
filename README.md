@@ -1,5 +1,7 @@
 # TFM-RR-YANG-LLDP
 # StreamNeighbor
+<img width="912" height="672" alt="image" src="https://github.com/user-attachments/assets/11c74e7c-551b-4024-8583-9083a15bb801" />
+
 
 Guía para instalar las dependencias, desplegar el escenario de red y ejecutar StreamNeighbor.
 
