@@ -15,6 +15,8 @@ La siguiente figura muestra el flujo completo de la solución, desde el descubri
 
 ### 1. Descubrimiento de la topología
 
+Como punto de partida, `streamneighbor.py` carga el inventario de red desde `ansible-inventory.yml`, archivo generado automáticamente por **Containerlab** durante el despliegue del escenario.
+
 La aplicación Python `streamneighbor.py` obtiene la información de los dispositivos mediante **gNMI** y **LLDP**.
 
 Los equipos Arista cEOS utilizan modelos YANG **OpenConfig**, mientras que los dispositivos Nokia SR Linux utilizan modelos YANG nativos `srl_nokia-*`.
@@ -25,7 +27,7 @@ La comunicación con los equipos se realiza mediante **gNMIc**, utilizado como c
 
 Se emplean principalmente dos operaciones:
 
-- `Get`, para obtener la información necesaria durante el descubrimiento de la topología.
+- `Get`, para obtener la información de relación de vecindad de los equipos y las interfaces que los conectan.
 - `Subscribe on-change`, para recibir cambios en el estado operativo de las interfaces.
 
 Las respuestas de las operaciones `Get` se solicitan utilizando la codificación `JSON_IETF`, lo que facilita su procesamiento desde Python.
@@ -79,7 +81,7 @@ Después del procesamiento, Flink publica las representaciones normalizadas nuev
 
 El servidor desarrollado con **Flask** consume información de Kafka.
 
-Para la visualización se utilizan principalmente:
+Para la visualización se utilizan:
 
     input
     output_json
@@ -193,15 +195,11 @@ En otra terminal, comprobar que los contenedores estén activos:
 
 ## Apache Flink
 
-Desde el directorio `topology-discoverer`, lanzar el job de Flink:
+Desde el directorio `topology-discoverer`, desplegar el job:
 
     ./deploy_flink.sh
 
-Este job ejecuta la aplicación:
-
-    TopologyDriver.java
-
-La aplicación consume la topología publicada en Kafka, procesa la información y genera las representaciones normalizadas en JSON y XML.
+El script envía al **JobManager de Flink** el archivo JAR que contiene la aplicación `TopologyDriver.java`. Esta consume la topología del topic `input`, la normaliza utilizando los modelos YANG de **RFC 8345** y publica los resultados en los topics `output_json` y `output_xml`.
 
 ## Ejecución de StreamNeighbor
 
