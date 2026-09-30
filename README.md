@@ -10,7 +10,7 @@ La arquitectura incorpora diferentes servicios para el procesamiento y visualiza
 
 La siguiente figura muestra el flujo completo de la solución, desde el descubrimiento de la red hasta la visualización de la topología en la interfaz web.
 
-<img width="887" height="718" alt="image" src="https://github.com/user-attachments/assets/9e6f94ec-de6d-46aa-b066-745769d7ee1a" />
+<img width="3062" height="1940" alt="Untitled Diagram-Page-10 (7)" src="https://github.com/user-attachments/assets/ff73dbd0-c94f-4e98-b79e-4d0c72b9488d" />
 
 
 ### 1. Descubrimiento de la topología
