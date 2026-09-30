@@ -15,24 +15,20 @@ La siguiente figura muestra el flujo completo de la solución, desde el descubri
 
 ### 1. Descubrimiento de la topología
 
-Como punto de partida, `streamneighbor.py` carga el inventario de red desde `ansible-inventory.yml`, archivo generado automáticamente por **Containerlab** durante el despliegue del escenario.
+Como punto de partida, `streamneighbor.py` carga el inventario de red desde `ansible-inventory.yml`, generado automáticamente por **Containerlab** durante el despliegue del escenario.
 
-La aplicación Python `streamneighbor.py` obtiene la información de los dispositivos mediante **gNMI** y **LLDP**.
+A partir de este inventario, StreamNeighbor utiliza **gNMIc** como cliente gNMI para comunicarse con los dispositivos y realiza dos operaciones principales:
 
-Los equipos Arista cEOS utilizan modelos YANG **OpenConfig**, mientras que los dispositivos Nokia SR Linux utilizan modelos YANG nativos `srl_nokia-*`.
+- **gNMI Get:** consulta la información LLDP para obtener las relaciones de vecindad entre los equipos y las interfaces que los conectan. También obtiene información adicional de las interfaces necesaria para construir la topología.
+- **gNMI Subscribe `on-change`:** mantiene suscripciones al estado operativo de las interfaces para detectar cambios y actualizar la topología cuando una interfaz pasa de `up` a `down` o viceversa.
 
-Aunque los fabricantes organizan la información mediante árboles YANG diferentes, StreamNeighbor consulta los datos equivalentes de interfaces y vecinos para construir una representación común de la topología.
+Las consultas se realizan sobre las rutas definidas por los modelos YANG implementados por cada fabricante. Los equipos **Arista cEOS** utilizan modelos YANG **OpenConfig**, mientras que **Nokia SR Linux** utiliza modelos YANG nativos `srl_nokia-*`.
 
-La comunicación con los equipos se realiza mediante **gNMIc**, utilizado como cliente gNMI desde Python.
+Aunque las rutas YANG son diferentes entre fabricantes, StreamNeighbor extrae la información equivalente y la transforma a una representación común de nodos, interfaces y enlaces.
 
-Se emplean principalmente dos operaciones:
+Las respuestas de las operaciones `Get` se solicitan con codificación `JSON_IETF` para facilitar su procesamiento desde Python.
 
-- `Get`, para obtener la información de relación de vecindad de los equipos y las interfaces que los conectan.
-- `Subscribe on-change`, para recibir cambios en el estado operativo de las interfaces.
-
-Las respuestas de las operaciones `Get` se solicitan utilizando la codificación `JSON_IETF`, lo que facilita su procesamiento desde Python.
-
-En los hosts Linux se utiliza `lldpd` para anunciar y descubrir información LLDP. Estos hosts forman parte de la topología, aunque no son gestionados directamente mediante gNMI.
+Los hosts Linux participan en el descubrimiento mediante **LLDP**, utilizando el servicio `lldpd`, aunque no son gestionados directamente mediante gNMI.
 
 ### 2. Generación de topology.drawio
 
@@ -66,7 +62,7 @@ Dentro de Flink se ejecuta la aplicación Java:
 
 Esta aplicación parsea el JSON recibido y utiliza **YANG Tools** para mapear la información de la topología a una representación basada en los modelos YANG `ietf-network` e `ietf-network-topology` de RFC 8345.
 
-Durante este proceso, los dispositivos se representan como nodos, las interfaces como `TerminationPoint` y las conexiones entre interfaces como `Link`.
+Durante este proceso, los dispositivos se representan como `nodos`, las interfaces como `TerminationPoint` y las conexiones entre interfaces como `Link`.
 
 ### 5. Publicación de las salidas normalizadas
 
@@ -174,7 +170,7 @@ Configurar el direccionamiento y el enrutamiento:
 
     ./configure-addressing-and-routing.sh
 
-Una vez desplegado el laboratorio puede visualizarse la topología creada mediante Containerlab.
+Una vez desplegado el laboratorio puede visualizarse la topología creada mediante Containerlab, como la siguiente:
 
 <img width="865" height="390" alt="image" src="https://github.com/user-attachments/assets/48690191-5ff3-4822-ba76-f1a5ad39edb2" />
 
