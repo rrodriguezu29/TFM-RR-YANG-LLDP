@@ -1,159 +1,270 @@
-# TFM-RR-YANG-LLDP
-# StreamNeighbor
-<img width="912" height="672" alt="image" src="https://github.com/user-attachments/assets/11c74e7c-551b-4024-8583-9083a15bb801" />
+# Diseño e implementación de una solución para el descubrimiento, modelado y visualización de topologías de red basada en modelos YANG y el protocolo LLDP
+
+La solución desarrollada automatiza el descubrimiento y seguimiento de una topología de red multivendor mediante modelos YANG y protocolos estándar como gNMI y LLDP.
+
+El escenario de red utiliza dispositivos **Arista cEOS**, que exponen información mediante modelos YANG OpenConfig, y dispositivos **Nokia SR Linux**, que utilizan modelos YANG propios de SR Linux (`srl_nokia-*`). También se incluyen hosts Linux para representar equipos finales dentro de la topología.
+
+La arquitectura incorpora diferentes servicios para el procesamiento y visualización de la información. **Kafka** se utiliza para transportar los mensajes de topología mediante los topics `input`, `output_json` y `output_xml`. **Apache Flink** actúa como plataforma de procesamiento de datos en streaming y ejecuta la aplicación Java `TopologyDriver.java`, encargada de transformar la topología recibida a representaciones normalizadas basadas en modelos YANG. Finalmente, **Flask**, **Socket.IO** y **Cytoscape.js** permiten visualizar la topología desde una interfaz web.
+
+## Flujo de funcionamiento
+
+La siguiente figura muestra el flujo completo de la solución, desde el descubrimiento de la red hasta la visualización de la topología en la interfaz web.
+
+<img width="887" height="718" alt="image" src="https://github.com/user-attachments/assets/9e6f94ec-de6d-46aa-b066-745769d7ee1a" />
 
 
-Guía para instalar las dependencias, desplegar el escenario de red y ejecutar StreamNeighbor.
+### 1. Descubrimiento de la topología
+
+La aplicación Python `streamneighbor.py` obtiene la información de los dispositivos mediante **gNMI** y **LLDP**.
+
+Los equipos Arista cEOS utilizan modelos YANG **OpenConfig**, mientras que los dispositivos Nokia SR Linux utilizan modelos YANG nativos `srl_nokia-*`.
+
+Aunque los fabricantes organizan la información mediante árboles YANG diferentes, StreamNeighbor consulta los datos equivalentes de interfaces y vecinos para construir una representación común de la topología.
+
+La comunicación con los equipos se realiza mediante **gNMIc**, utilizado como cliente gNMI desde Python.
+
+Se emplean principalmente dos operaciones:
+
+- `Get`, para obtener la información necesaria durante el descubrimiento de la topología.
+- `Subscribe on-change`, para recibir cambios en el estado operativo de las interfaces.
+
+Las respuestas de las operaciones `Get` se solicitan utilizando la codificación `JSON_IETF`, lo que facilita su procesamiento desde Python.
+
+En los hosts Linux se utiliza `lldpd` para anunciar y descubrir información LLDP. Estos hosts forman parte de la topología, aunque no son gestionados directamente mediante gNMI.
+
+### 2. Generación de topology.drawio
+
+A partir de los nodos, interfaces, vecinos y estados descubiertos, StreamNeighbor genera:
+
+    topology.drawio
+
+Este archivo contiene una representación gráfica de la topología y puede abrirse mediante diagrams.net/draw.io.
+
+### 3. Generación y publicación de topology.json
+
+StreamNeighbor genera también:
+
+    topology.json
+
+Este archivo contiene la representación de la topología descubierta en formato JSON.
+
+La misma información se publica en **Apache Kafka** utilizando el topic:
+
+    input
+
+Kafka actúa como mecanismo de transporte entre la aplicación de descubrimiento y los componentes encargados del procesamiento y visualización.
+
+### 4. Procesamiento y normalización con Apache Flink
+
+**Apache Flink** consume los mensajes publicados en el topic `input`.
+
+Dentro de Flink se ejecuta la aplicación Java:
+
+    TopologyDriver.java
+
+Esta aplicación parsea el JSON recibido y utiliza **YANG Tools** para mapear la información de la topología a una representación basada en los modelos YANG `ietf-network` e `ietf-network-topology` de RFC 8345.
+
+Durante este proceso, los dispositivos se representan como nodos, las interfaces como `TerminationPoint` y las conexiones entre interfaces como `Link`.
+
+### 5. Publicación de las salidas normalizadas
+
+Después del procesamiento, Flink publica las representaciones normalizadas nuevamente en Kafka mediante los topics:
+
+    output_json
+    output_xml
+
+`output_json` contiene la representación normalizada en JSON y `output_xml` proporciona una representación alternativa en XML.
+
+### 6. Servidor web
+
+El servidor desarrollado con **Flask** consume información de Kafka.
+
+Para la visualización se utilizan principalmente:
+
+    input
+    output_json
+
+De esta forma, la interfaz permite disponer tanto de la topología generada originalmente por StreamNeighbor como de la representación normalizada obtenida mediante Apache Flink.
+
+### 7. Visualización con Cytoscape.js
+
+Flask envía las actualizaciones hacia el navegador mediante **Socket.IO**.
+
+En el cliente web, **Cytoscape.js** utiliza estos datos para construir y actualizar dinámicamente los grafos de la topología.
+
+La interfaz permite visualizar:
+
+- La topología generada por StreamNeighbor a partir del topic `input`.
+- La topología normalizada según RFC 8345 a partir del topic `output_json`.
+
+Una vez desplegados los servicios y ejecutado StreamNeighbor, la interfaz puede consultarse desde:
+
+    http://localhost:5000/
+
 
 ## Instalación
 
-### Imágenes Docker
+Los siguientes pasos corresponden a la preparación inicial del escenario antes de realizar el despliegue.
 
-Acceder al directorio de imágenes:
+### Imagen Arista cEOS
 
-```
-cd /home/upm/Desktop/yang-lab/activities/module-TFM/img
-```
+La imagen de Arista cEOS debe descargarse desde el portal oficial de Arista:
 
-Importar la imagen de Arista cEOS:
+https://www.arista.com/en/support/software-download
 
-```
-docker import cEOS64-lab-4.34.5M.tar ceos:4.34.5M
-```
+Para realizar la descarga es necesario crear previamente una cuenta en el portal de Arista.
 
-Acceder al directorio Docker:
+Para este escenario se utiliza:
 
-```
-cd docker/
-```
+    cEOS64-lab-4.34.5M.tar
 
-Construir la imagen Ubuntu con LLDP:
+Crear una carpeta `img` en la raíz del proyecto y copiar en ella la imagen descargada.
 
-```
-docker build -t ubuntu-lldp:latest .
-```
+Acceder al directorio:
 
-Construir y etiquetar la imagen utilizada por el escenario:
+    cd img
 
-```
-sudo docker build -t giros-dit/clab-telemetry-testbed-ubuntu:latest .
-sudo docker tag giros-dit/clab-telemetry-testbed-ubuntu:latest ubuntu-lldp:latest
-```
+Importar la imagen en Docker:
 
-### Validar LLDP
+    docker import cEOS64-lab-4.34.5M.tar ceos:4.34.5M
 
-Ejecutar un contenedor temporal:
+### Imagen Ubuntu
 
-```
-docker run -it --rm ubuntu-lldp:latest bash
-```
+Acceder al directorio que contiene el Dockerfile:
 
-Dentro del contenedor, validar la instalación de `lldpd`:
+    cd docker/
 
-```
-which lldpd
-lldpd -v
-```
+Construir la imagen:
+
+    docker build -t ubuntu-lldp:latest .
+
+También puede construirse utilizando el nombre empleado por el escenario:
+
+    sudo docker build -t giros-dit/clab-telemetry-testbed-ubuntu:latest .
+
+Crear la etiqueta:
+
+    sudo docker tag giros-dit/clab-telemetry-testbed-ubuntu:latest ubuntu-lldp:latest
 
 ### Dependencias
 
 Instalar las dependencias de Python:
 
-```
-python3 -m pip install kafka-python
-python3 -m pip install pyyaml deepdiff
-```
+    python3 -m pip install kafka-python
+    python3 -m pip install pyyaml deepdiff
 
 Instalar Maven:
 
-```
-sudo apt update
-sudo apt install -y maven
-```
+    sudo apt update
+    sudo apt install -y maven
 
 ## Despliegue del escenario de red
 
-Acceder al directorio del escenario:
+Desde la raíz del repositorio acceder al directorio:
 
-```
-cd /home/upm/Desktop/yang-lab/activities/module-TFM/routing-testbed-ceos-and-srlinux
-```
+    cd routing-testbed-ceos-and-srlinux
 
 Desplegar el escenario:
 
-```
-./deploy-routing-testbed.sh
-```
+    ./deploy-routing-testbed.sh
 
-Configurar direccionamiento y routing:
+Configurar el direccionamiento y el enrutamiento:
 
-```
-./configure-addressing-and-routing.sh
-```
+    ./configure-addressing-and-routing.sh
+
+Una vez desplegado el laboratorio puede visualizarse la topología creada mediante Containerlab.
+
+<img width="865" height="390" alt="image" src="https://github.com/user-attachments/assets/48690191-5ff3-4822-ba76-f1a5ad39edb2" />
+
 
 ## Servicios Docker
 
-Acceder al directorio `topology-discoverer`:
+Regresar a la raíz del repositorio y acceder al directorio:
 
-```
-cd /home/upm/Desktop/yang-lab/activities/module-TFM/topology-discoverer
-```
+    cd ../topology-discoverer
 
 Levantar los servicios:
 
-```
-docker compose up
-```
+    docker compose up
 
-En otra terminal, validar que los contenedores estén activos:
+En otra terminal, comprobar que los contenedores estén activos:
 
-```
-docker ps
-```
+    docker ps
 
 ## Apache Flink
 
 Desde el directorio `topology-discoverer`, lanzar el job de Flink:
 
-```
-./deploy_flink.sh
-```
+    ./deploy_flink.sh
 
-## StreamNeighbor
+Este job ejecuta la aplicación:
 
-Acceder al directorio principal:
+    TopologyDriver.java
 
-```
-cd /home/upm/Desktop/yang-lab/activities/module-TFM
-```
+La aplicación consume la topología publicada en Kafka, procesa la información y genera las representaciones normalizadas en JSON y XML.
 
-Ejecutar StreamNeighbor:
+## Ejecución de StreamNeighbor
 
-```
-python streamneighbor.py
-```
+Regresar a la raíz del repositorio:
+
+    cd ..
+
+Ejecutar la aplicación Python:
+
+    python streamneighbor.py
+
+StreamNeighbor realiza el descubrimiento inicial de la topología mediante gNMI y LLDP y mantiene suscripciones gNMI `Subscribe on-change` para detectar cambios en el estado operativo de las interfaces.
+
+Una vez iniciada la aplicación se generan los siguientes archivos:
+
+    topology.json
+    topology.drawio
+
+`topology.json` contiene la representación de la topología descubierta y `topology.drawio` permite visualizar la topología mediante diagrams.net/draw.io.
+
+## Visualización web
+
+Una vez levantados los servicios y ejecutada la aplicación StreamNeighbor, acceder desde el navegador a:
+
+http://localhost:5000/
+
+La interfaz web permite visualizar tanto la topología recibida desde StreamNeighbor (StreamNeighbor Topology) como la representación normalizada procesada por Apache Flink (RFC 8345 Topology).
 
 ## Orden de ejecución
 
-```
-1. ./deploy-routing-testbed.sh
-2. ./configure-addressing-and-routing.sh
-3. docker compose up
-4. docker ps
-5. ./deploy_flink.sh
-6. python streamneighbor.py
-```
+    cd routing-testbed-ceos-and-srlinux
+
+    ./deploy-routing-testbed.sh
+    ./configure-addressing-and-routing.sh
+
+    cd ../topology-discoverer
+
+    docker compose up
+
+En otra terminal:
+
+    docker ps
+
+Desde `topology-discoverer`:
+
+    ./deploy_flink.sh
+
+Finalmente, desde la raíz del repositorio:
+
+    cd ..
+
+    python streamneighbor.py
+
+Acceder desde el navegador a:
+
+    http://localhost:5000/
 
 ## Destruir el escenario
 
-Acceder al directorio del escenario:
+Acceder nuevamente al directorio del escenario:
 
-```
-cd /home/upm/Desktop/yang-lab/activities/module-TFM/routing-testbed-ceos-and-srlinux
-```
+    cd routing-testbed-ceos-and-srlinux
 
 Ejecutar:
 
-```
-./destroy-routing-testbed.sh
-```
+    ./destroy-routing-testbed.sh
