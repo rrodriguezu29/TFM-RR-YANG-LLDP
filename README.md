@@ -262,3 +262,9 @@ Acceder nuevamente al directorio del escenario:
 Ejecutar:
 
     ./destroy-routing-testbed.sh
+
+## Trabajo Fin de Máster
+
+Este proyecto ha sido desarrollado como parte del Trabajo Fin de Máster (TFM) del **Máster Universitario en Ingeniería de Redes y Servicios Telemáticos (MUIRST)**, impartido en la **Escuela Técnica Superior de Ingenieros de Telecomunicación (ETSIT)** de la **Universidad Politécnica de Madrid (UPM)**.
+
+El proyecto desarrolla una solución para el descubrimiento y seguimiento dinámico de topologías de red multivendor mediante tecnologías como LLDP, gNMI, YANG, Apache Kafka, Apache Flink, Flask y Cytoscape.js.
