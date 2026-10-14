@@ -268,3 +268,7 @@ Ejecutar:
 Este proyecto ha sido desarrollado como parte del Trabajo Fin de Máster (TFM) del **Máster Universitario en Ingeniería de Redes y Servicios Telemáticos (MUIRST)**, impartido en la **Escuela Técnica Superior de Ingenieros de Telecomunicación (ETSIT)** de la **Universidad Politécnica de Madrid (UPM)**.
 
 El proyecto desarrolla una solución para el descubrimiento y seguimiento dinámico de topologías de red multivendor mediante tecnologías como LLDP, gNMI, YANG, Apache Kafka, Apache Flink, Flask y Cytoscape.js.
+
+## Licencia
+
+Este proyecto está bajo la licencia Apache License 2.0. Consulte el archivo [LICENSE](LICENSE) para más información.
